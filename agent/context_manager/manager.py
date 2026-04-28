@@ -145,7 +145,7 @@ class ContextManager:
     ):
         self.system_prompt = self._load_system_prompt(
             tool_specs or [],
-            prompt_file_suffix="system_prompt_v3.yaml",
+            prompt_file_suffix="system_prompt_domino.yaml",
             hf_token=hf_token,
             local_mode=local_mode,
         )

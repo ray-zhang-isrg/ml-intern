@@ -57,6 +57,9 @@ eval/
 
 # Project-specific
 session_logs/
+static/
+mcp-servers/*/.venv/
+mcp-servers/*/uv.lock
 /logs
 hf-agent-leaderboard/
 skills/

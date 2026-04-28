@@ -201,6 +201,10 @@ def load_config(
     load_dotenv(_PROJECT_ROOT / ".env")
     load_dotenv(override=False)
 
+    # Map Domino env vars: HF_WRITE_TOKEN → HF_TOKEN if HF_TOKEN not already set
+    if not os.environ.get("HF_TOKEN") and os.environ.get("HF_WRITE_TOKEN"):
+        os.environ["HF_TOKEN"] = os.environ["HF_WRITE_TOKEN"]
+
     raw_config = _load_json_config(Path(config_path))
     if include_user_defaults:
         raw_config = _deep_merge_config(raw_config, _load_user_config())

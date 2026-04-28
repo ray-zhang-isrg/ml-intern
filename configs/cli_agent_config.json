@@ -1,7 +1,7 @@
 {
-  "model_name": "anthropic/claude-opus-4-6",
-  "save_sessions": true,
-  "session_dataset_repo": "smolagents/ml-intern-sessions",
+  "model_name": "anthropic/claude-sonnet-4-5-20250929",
+  "save_sessions": false,
+  "session_dataset_repo": "",
   "yolo_mode": false,
   "confirm_cpu_jobs": true,
   "auto_file_upload": true,
@@ -11,9 +11,15 @@
     "destinations": {}
   },
   "mcpServers": {
-    "hf-mcp-server": {
-      "transport": "http",
-      "url": "https://huggingface.co/mcp?login"
+    "domino_server": {
+      "transport": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${MCP_SERVER_DIR:-/app/mcp-servers/domino_mcp_server}",
+        "run",
+        "domino_mcp_server.py"
+      ]
     }
   }
 }

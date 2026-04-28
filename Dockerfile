@@ -12,8 +12,8 @@ FROM python:3.12-slim
 # Install uv directly from official image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Create user with UID 1000 (required for HF Spaces)
-RUN useradd -m -u 1000 user
+# Create user with UID 12574 (Domino standard)
+RUN useradd -m -u 12574 domino
 
 WORKDIR /app
 
@@ -35,24 +35,30 @@ COPY agent/ ./agent/
 COPY backend/ ./backend/
 COPY configs/ ./configs/
 
+# Copy Domino MCP server
+COPY mcp-servers/ ./mcp-servers/
+
+# Pre-install MCP server dependencies so they are cached in the image
+RUN cd /app/mcp-servers/domino_mcp_server && uv sync --frozen 2>/dev/null || uv sync
+
 # Copy built frontend
 COPY --from=frontend-builder /app/frontend/dist ./static/
 
 # Create directories and set ownership
 RUN mkdir -p /app/session_logs && \
-    chown -R user:user /app
+    chown -R domino:domino /app
 
 # Switch to non-root user
-USER user
+USER domino
 
 # Set environment
-ENV HOME=/home/user \
+ENV HOME=/home/domino \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     PATH="/app/.venv/bin:$PATH"
 
-# Expose port
-EXPOSE 7860
+# Expose port (Domino apps use 8888 by default)
+EXPOSE 8888
 
 # Run the application from backend directory
 WORKDIR /app/backend

@@ -31,11 +31,12 @@ async def lifespan(app: FastAPI):
     await session_manager.start()
     # Start in-process hourly KPI rollup. Replaces an external cron so the
     # rollup lives next to the data and reuses the Space's HF token.
-    try:
-        import kpis_scheduler
-        kpis_scheduler.start()
-    except Exception as e:
-        logger.warning("KPI scheduler failed to start: %s", e)
+    # KPI scheduler disabled for Domino deployment (HF-specific)
+    # try:
+    #     import kpis_scheduler
+    #     kpis_scheduler.start()
+    # except Exception as e:
+    #     logger.warning("KPI scheduler failed to start: %s", e)
     yield
 
     logger.info("Shutting down HF Agent backend...")
@@ -62,8 +63,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="HF Agent",
-    description="ML Engineering Assistant API",
+    title="Domino AI Assistant",
+    description="Domino ML Engineering Assistant API",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -71,12 +72,7 @@ app = FastAPI(
 # CORS middleware for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite dev server
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -108,5 +104,5 @@ async def api_root():
 if __name__ == "__main__":
     import uvicorn
 
-    port = int(os.environ.get("PORT", 7860))
+    port = int(os.environ.get("PORT", 8888))
     uvicorn.run(app, host="0.0.0.0", port=port)

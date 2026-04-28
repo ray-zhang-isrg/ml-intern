@@ -5,7 +5,8 @@
 # with code 0 so the dev mode daemon doesn't mark the app as crashed.
 
 # Run uvicorn; if it fails due to port conflict, exit cleanly.
-uvicorn main:app --host 0.0.0.0 --port 7860
+PORT="${PORT:-8888}"
+uvicorn main:app --host 0.0.0.0 --port "$PORT"
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -ne 0 ]; then

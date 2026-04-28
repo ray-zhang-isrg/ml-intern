@@ -43,30 +43,11 @@ router = APIRouter(prefix="/api", tags=["agent"])
 
 AVAILABLE_MODELS = [
     {
-        "id": "moonshotai/Kimi-K2.6",
-        "label": "Kimi K2.6",
-        "provider": "huggingface",
-        "tier": "free",
-        "recommended": True,
-    },
-    {
-        "id": "bedrock/us.anthropic.claude-opus-4-6-v1",
-        "label": "Claude Opus 4.6",
+        "id": "anthropic/claude-sonnet-4-5-20250929",
+        "label": "Claude Sonnet 4.5",
         "provider": "anthropic",
-        "tier": "pro",
+        "tier": "free",
         "recommended": True,
-    },
-    {
-        "id": "MiniMaxAI/MiniMax-M2.7",
-        "label": "MiniMax M2.7",
-        "provider": "huggingface",
-        "tier": "free",
-    },
-    {
-        "id": "zai-org/GLM-5.1",
-        "label": "GLM 5.1",
-        "provider": "huggingface",
-        "tier": "free",
     },
 ]
 
@@ -269,12 +250,11 @@ async def llm_health_check() -> LLMHealthResponse:
     """
     model = session_manager.config.model_name
     try:
-        llm_params = _resolve_llm_params(model, reasoning_effort="high")
         await acompletion(
+            model=model,
             messages=[{"role": "user", "content": "hi"}],
             max_tokens=1,
             timeout=10,
-            **llm_params,
         )
         return LLMHealthResponse(status="ok", model=model)
     except Exception as e:
@@ -334,16 +314,9 @@ async def generate_title(
     reasoning model — reasoning_effort=low keeps the reasoning budget small
     so the 60-token output budget isn't consumed before the title is written.
     """
-    api_key = resolve_hf_router_token(
-        user.get("hf_token") if isinstance(user, dict) else None
-    )
     try:
         response = await acompletion(
-            # Double openai/ prefix: LiteLLM strips the first as its provider
-            # prefix, leaving the HF model id on the wire for the router.
-            model="openai/openai/gpt-oss-120b:cerebras",
-            api_base="https://router.huggingface.co/v1",
-            api_key=api_key,
+            model=session_manager.config.model_name,
             messages=[
                 {
                     "role": "system",
@@ -360,7 +333,6 @@ async def generate_title(
             max_tokens=60,
             temperature=0.3,
             timeout=10,
-            reasoning_effort="low",
         )
         title = response.choices[0].message.content.strip().strip('"').strip("'")
         title = title.translate(_TITLE_STRIP_CHARS).strip()
@@ -406,11 +378,6 @@ async def create_session(
     if model and model not in valid_ids:
         raise HTTPException(status_code=400, detail=f"Unknown model: {model}")
 
-    # Opus is gated to HF staff (PR #63). Only fires when the resolved model
-    # is Anthropic; free models pass through.
-    resolved_model = model or session_manager.config.model_name
-    await _require_hf_for_anthropic(request, resolved_model)
-
     try:
         session_id = await session_manager.create_session(
             user_id=user["user_id"], hf_token=hf_token, model=model
@@ -443,9 +410,6 @@ async def restore_session_summary(
     valid_ids = {m["id"] for m in AVAILABLE_MODELS}
     if model and model not in valid_ids:
         raise HTTPException(status_code=400, detail=f"Unknown model: {model}")
-
-    resolved_model = model or session_manager.config.model_name
-    await _require_hf_for_anthropic(request, resolved_model)
 
     try:
         session_id = await session_manager.create_session(
@@ -502,7 +466,6 @@ async def set_session_model(
     valid_ids = {m["id"] for m in AVAILABLE_MODELS}
     if model_id not in valid_ids:
         raise HTTPException(status_code=400, detail=f"Unknown model: {model_id}")
-    await _require_hf_for_anthropic(request, model_id)
     agent_session = session_manager.sessions.get(session_id)
     if not agent_session:
         raise HTTPException(status_code=404, detail="Session not found")
