@@ -4,6 +4,7 @@ Provides ToolSpec and ToolRouter for managing both built-in and MCP tools
 """
 
 import logging
+import os
 import warnings
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Optional
@@ -143,6 +144,16 @@ class ToolRouter:
             mcp_servers_payload = {}
             for name, server in mcp_servers.items():
                 data = server.model_dump()
+                # Ensure stdio MCP servers inherit the parent process's
+                # environment variables (e.g. DOMINO_API_HOST, DOMINO_API_KEY).
+                # When env is empty ({}) the MCP library treats it as an
+                # explicit override and strips all inherited vars.  Setting it
+                # to None lets the library fall back to its safe defaults, but
+                # those defaults only include PATH/HOME/etc.  So we merge the
+                # full current environment with any explicit overrides.
+                if data.get("transport") == "stdio":
+                    explicit_env = data.get("env") or {}
+                    data["env"] = {**os.environ, **explicit_env}
                 if hf_token:
                     data.setdefault("headers", {})["Authorization"] = f"Bearer {hf_token}"
                 mcp_servers_payload[name] = data
